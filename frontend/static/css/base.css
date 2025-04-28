@@ -1,0 +1,11 @@
+@font-face {
+    font-family: 'JBMono';
+    src: url('/static/fonts/JetBrainsMono-Regular.woff2') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'JBMono', sans-serif;
+}
+
