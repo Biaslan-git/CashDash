@@ -1,7 +1,10 @@
 
-from dataclasses import dataclass
 
-from sqlalchemy import select
+from datetime import datetime
+from dataclasses import dataclass
+from enum import Enum
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
 
 from annotations.transactions import TransactionID
@@ -14,10 +17,19 @@ class TransactionsRepository:
     db_session: sessionmaker
 
     def get_transactions(self, offset: int = 0, limit: int = 0) -> list[Transaction]:
-        query = select(Transaction).offset(offset).limit(limit)
+        query = select(Transaction).offset(offset).limit(limit).order_by(Transaction.date.desc())
         with self.db_session() as session:
             transactions: list[Transaction] = list(session.execute(query).scalars().all())
         return transactions
+
+    def get_transactions_peer_month(self, year: int, month: int) -> list[Transaction]:
+        query = select(Transaction).filter(
+            func.date_trunc('month', Transaction.date) == datetime(year, month, 1)
+        ).order_by(Transaction.date.desc())
+        with self.db_session() as session:
+            transactions: list[Transaction] = list(session.execute(query).scalars().all())
+        return transactions
+
 
     def create_transaction(self, transaction_schema: TransactionCreate) -> TransactionID:
         transaction = Transaction(

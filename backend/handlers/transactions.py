@@ -18,6 +18,15 @@ def get_transactions(
     return transactions_service.get_transactions(offset=offset, limit=limit)
 
 
+@router.get("/peer_month_grouped_by_day")
+def get_transactions_peer_month(
+    year: int,
+    month: int,
+    transactions_service: TransactionsService = Depends(get_transactions_service)
+) -> list[list[tuple[str, list[TransactionRead]]]]:
+    return transactions_service.get_transactions_peer_month_grouped_by_days(year, month)
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_transaction(
     transaction_schema: TransactionCreate, 

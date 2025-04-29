@@ -1,51 +1,148 @@
-
-<ul class="max-w-xl divide-y divide-gray-200 dark:divide-gray-700 grid gap-4" style="width: 100%">
-   <li class="pb-3 sm:pb-4 grid gap-2">
-    <span class="text-xl">Сегодня</span>
-    <ul>
-      <li>
-        <div class="flex items-center space-x-4 rtl:space-x-reverse">
-           <div class="shrink-0">
-              <!-- <img class="w-8 h-8 rounded-full" src="/docs/images/people/profile-picture-1.jpg" alt="Neil image"> -->
-           </div>
-           <div class="flex-1 min-w-xxl">
-              <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                 Neil Sims
-              </p>
-              <!-- <p class="text-sm text-gray-500 truncate dark:text-gray-400"> -->
-              <!--    email@flowbite.com -->
-              <!-- </p> -->
-           </div>
-           <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-              $320
-           </div>
-        </div>
-
-      </li>
-    </ul>
-   </li>
-   <li class="pb-3 sm:pb-4 grid gap-2">
-    <span class="text-xl">Сегодня</span>
-    <ul>
-      <li>
-        <div class="flex items-center space-x-4 rtl:space-x-reverse">
-           <div class="shrink-0">
-              <!-- <img class="w-8 h-8 rounded-full" src="/docs/images/people/profile-picture-1.jpg" alt="Neil image"> -->
-           </div>
-           <div class="flex-1 min-w-xxl">
-              <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                 Neil Sims
-              </p>
-              <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                 email@flowbite.com
-              </p>
-           </div>
-           <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-              $320
-           </div>
-        </div>
-
-      </li>
-    </ul>
-   </li>
+<div class="loader m-4"></div>
+<ul id="operations-list" class="max-w-xl divide-y divide-gray-200 dark:divide-gray-700 grid gap-4" style="width: 100%">
+  <!-- Сюда будут добавляться операции -->
 </ul>
+
+<script>
+$(document).ready(function() {
+  // Получаем текущую дату
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
+
+  setMonthName(month);
+
+  const apiUrl = `{{ backend_url }}/transactions/peer_month_grouped_by_day/?year=${year}&month=${month}`;
+  console.log(apiUrl)
+
+  // Функция для загрузки операций
+  function loadOperations() {
+    $.ajax({
+      url: apiUrl,
+      crossDomain: true,
+      method: 'GET',
+      dataType: 'json',
+      success: function(data) {
+        console.log(data)
+        displayOperations(data);
+      },
+    error: function(jqXHR, textStatus, errorThrown) {  // Исправленный параметр
+      let errorMsg = 'Ошибка при загрузке данных';
+      
+      // Проверяем объект jqXHR (аналог xhr в jQuery)
+      if (jqXHR.status === 0) {
+        errorMsg = 'Нет соединения с сервером';
+      } else if (jqXHR.status === 502) {
+        errorMsg = 'Проблема с сервером (502 Bad Gateway)';
+      } else if (jqXHR.status === 404) {
+        errorMsg = 'API не найдено (404)';
+      } else if (jqXHR.status === 403) {
+        errorMsg = 'Доступ запрещен (CORS)';
+      }
+      
+      console.error('Ошибка AJAX:', {
+        status: jqXHR.status,
+        statusText: jqXHR.statusText,
+        responseText: jqXHR.responseText,
+        error: errorThrown
+      });
+      
+      $('#operations-list').html(
+        `<li class="text-red-500 p-4">${errorMsg}</li>`
+      );
+    }
+    });
+  }
+
+  // Функция для отображения операций
+function displayOperations(apiResponse) {
+  const $operationsList = $('#operations-list');
+  $operationsList.empty();
+
+  if (!Array.isArray(apiResponse)) {
+    console.error('API вернуло не массив:', apiResponse);
+    return;
+  }
+
+  // Функция для обрезания комментария
+  const truncateComment = (comment) => {
+    if (!comment) return null;
+    return comment.length <= 10 ? comment : comment.substring(0, 10) + '...';
+  };
+
+  apiResponse.forEach(dayGroup => {
+    if (!Array.isArray(dayGroup)) {
+      console.error('Элемент dayGroup не является массивом:', dayGroup);
+      return;
+    }
+
+    dayGroup.forEach(([dayName, operations]) => {
+      if (!Array.isArray(operations)) {
+        console.error(`Операции для дня ${dayName} не являются массивом:`, operations);
+        return;
+      }
+
+      const $dayContainer = $('<li class="pb-3 sm:pb-4 grid gap-2"></li>');
+      $dayContainer.append(`<span class="text-xl">${dayName}</span>`);
+      
+      const $operationsUl = $('<ul class="space-y-2"></ul>');
+      
+      operations.forEach(operation => {
+        const displayDate = operation.date ? operation.date.split('T')[0] : '';
+        const comment = operation.comment ? 
+          `<p class="text-sm text-gray-500 truncate dark:text-gray-400" title="${operation.comment}">
+            ${truncateComment(operation.comment)}
+          </p>` : '';
+        
+        const $operationLi = $(`
+          <li class="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div class="flex items-center space-x-4 rtl:space-x-reverse">
+              <div class="flex-1 min-w-0" style="text-wrap: wrap">
+                <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
+                  ${operation.type || 'Без типа'}
+                </p>
+                ${comment}
+                <p class="text-xs text-gray-400 dark:text-gray-300">
+                  ${displayDate || ''}
+                </p>
+              </div>
+              <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
+                ${operation.amount || '0'} ₽
+              </div>
+            </div>
+          </li>
+        `);
+        
+        $operationsUl.append($operationLi);
+      });
+      
+      $dayContainer.append($operationsUl);
+      $operationsList.append($dayContainer);
+    });
+  });
+}
+
+function setMonthName(monthNumber) {
+  const monthNames = [
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь'
+  ];
+  
+  $('#monthTitle').text(monthNames[monthNumber - 1]);
+}
+
+  // Загружаем операции при загрузке страницы
+  loadOperations();
+  $('.loader').hide();
+});
+</script>
