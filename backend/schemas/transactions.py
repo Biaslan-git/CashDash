@@ -1,7 +1,10 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel
+
 from models import TransactionType
+
 
 class TransactionBase(BaseModel):
     amount: float
@@ -10,7 +13,7 @@ class TransactionBase(BaseModel):
     comment: Optional[str] = None
 
 class TransactionCreate(TransactionBase):
-    pass
+    date: datetime | None = None
 
 class TransactionRead(TransactionBase):
     id: int

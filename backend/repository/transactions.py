@@ -24,7 +24,8 @@ class TransactionsRepository:
             amount=transaction_schema.amount,
             category=transaction_schema.category,
             type=transaction_schema.type,
-            comment=transaction_schema.comment
+            comment=transaction_schema.comment,
+            date=transaction_schema.date
         )
         with self.db_session() as session:
             session.add(transaction)
